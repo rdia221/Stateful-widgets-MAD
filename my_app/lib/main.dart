@@ -1,118 +1,65 @@
 import 'package:flutter/material.dart';
+import 'dart:convert';
+import 'dart:io';
 
 void main() {
-  runApp(const MyApp());
+  runApp(MyApp());
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({super.key});
-
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      home: const CounterPage(),
-    );
+    return MaterialApp(home: ApiPage());
   }
 }
 
-// StatefulWidget because counter changes
-class CounterPage extends StatefulWidget {
-  const CounterPage({super.key});
-
+class ApiPage extends StatefulWidget {
   @override
-  State<CounterPage> createState() => _CounterPageState();
+  _ApiPageState createState() => _ApiPageState();
 }
 
-class _CounterPageState extends State<CounterPage> {
-  int counter = 0;
+class _ApiPageState extends State<ApiPage> {
+  String title = "";
+  bool loading = false;
 
-  // Simple function to add 1
-  void addOne() {
+  void fetchPost() async {
     setState(() {
-      counter = counter + 1;
+      loading = true;
     });
-  }
 
-  // Simple function to subtract 1
-  void minusOne() {
-    setState(() {
-      if (counter > 0) {
-        counter = counter - 1;
-      }
-    });
-  }
+    var client = HttpClient();
+    var request = await client.getUrl(
+      Uri.parse("https://jsonplaceholder.typicode.com/posts/1"),
+    );
 
-  // Reset to zero
-  void reset() {
+    var response = await request.close();
+    var data = await response.transform(utf8.decoder).join();
+    var jsonData = json.decode(data);
+
     setState(() {
-      counter = 0;
+      title = jsonData["title"];
+      loading = false;
     });
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      // Top bar with title and menu button
-      appBar: AppBar(
-        title: const Text('Stateful Widget'),
-        actions: [
-          // Menu
-          PopupMenuButton<String>(
-            onSelected: (value) {
-              if (value == 'reset') {
-                reset();
-              }
-            },
-            itemBuilder: (context) => [
-              const PopupMenuItem(value: 'reset', child: Text('Reset')),
-              const PopupMenuItem(value: 'about', child: Text('About')),
-            ],
-          ),
-        ],
-      ),
-
-      // Main
+      appBar: AppBar(title: Text("API Data Fetching")),
       body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            // Shows how many times we pressed the button
-            const Text('You pressed it:'),
-            const SizedBox(height: 10),
-
-            // number display
-            Text(
-              '$counter',
-              style: const TextStyle(fontSize: 60, fontWeight: FontWeight.bold),
-            ),
-
-            const SizedBox(height: 30),
-
-            // Two buttons side by sside
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                ElevatedButton(
-                  onPressed: minusOne,
-                  style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-                  child: const Text('-1'),
-                ),
-                const SizedBox(width: 20),
-                ElevatedButton(onPressed: addOne, child: const Text('+1')),
-              ],
-            ),
-
-            const SizedBox(height: 20),
-
-            // Reset button
-            ElevatedButton(
-              onPressed: reset,
-              style: ElevatedButton.styleFrom(backgroundColor: Colors.grey),
-              child: const Text('Reset'),
-            ),
-          ],
-        ),
+        child: loading
+            ? CircularProgressIndicator()
+            : Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(title),
+                  SizedBox(height: 20),
+                  ElevatedButton(
+                    onPressed: fetchPost,
+                    child: Text("Fetching Post"),
+                  ),
+                ],
+              ),
       ),
     );
   }
